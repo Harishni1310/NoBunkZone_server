@@ -1,50 +1,46 @@
-import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
-import authRoutes from './Routes/AuthRoutes.js'
-import studentRoutes from './Routes/StudentRoutes.js'
-import teacherRoutes from './Routes/TeacherRoutes.js'
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './Routes/AuthRoutes.js';
+import studentRoutes from './Routes/StudentRoutes.js';
+import teacherRoutes from './Routes/TeacherRoutes.js';
 import connectDb from "./Db/db.js";
 
 dotenv.config();
 
-const PORT = (process.env.PORT || 5000)
-const app = express()
+const PORT = process.env.PORT || 5000;
+const app = express();
 
 connectDb();
 
-//middlewares
-app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:3000'],
-  credentials: true
-}))
-app.use(express.json())
+// ✅ Single CORS setup
+const allowedOrigins = [
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://nobunkzoneharishni.netlify.app'
+];
 
 app.use(cors({
-  origin: 'https://nobunkzoneharishni.netlify.app', // allow only your frontend
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
-app.options("*", cors());
+app.use(express.json());
 
-app.use(cors({ origin: "*" }));
-
-//routes
+// routes
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is running!' });
 });
-app.use('/api/auth', authRoutes)
-app.use('/api/student', studentRoutes)
-app.use('/api/teacher', teacherRoutes)
+app.use('/api/auth', authRoutes);
+app.use('/api/student', studentRoutes);
+app.use('/api/teacher', teacherRoutes);
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ msg: 'Route not found' });
 });
 
-app.listen(PORT ,() => {
-    console.log(`app is listening on port ${PORT}`)
-})
-
-
+app.listen(PORT, () => {
+  console.log(`app is listening on port ${PORT}`);
+});
