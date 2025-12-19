@@ -2,6 +2,7 @@
   "name": "nobunkzone-server",
   "version": "1.0.0",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
