@@ -11,14 +11,19 @@ dotenv.config();
 const PORT = process.env.PORT || 5000;
 const app = express();
 
-connectDb();
+// Connect to database
+connectDb().catch(err => {
+  console.error('Failed to connect to database:', err);
+  process.exit(1);
+});
 
 // ✅ Single CORS setup
 const allowedOrigins = [
   'http://localhost:5174',
-  'http://localhost:3000',
-  'https://nobunkzoneharishni.netlify.app'
-];
+  'http://localhost:3000', 
+  'https://nobunkzoneharishni.netlify.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
 
 app.use(cors({
   origin: allowedOrigins,
@@ -41,6 +46,6 @@ app.use((req, res) => {
   res.status(404).json({ msg: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`app is listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
