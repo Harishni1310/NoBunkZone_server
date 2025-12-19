@@ -5,36 +5,83 @@ import Todo from "../Model/TodoModel.js";
 
 export const addStudent = async (req, res) => {
   try {
-    await Student.create(req.body);
-    res.json({ msg: "Student added" });
+    const { name, roll, className, email } = req.body;
+    
+    if (!name || !roll) {
+      return res.status(400).json({ msg: "Name and roll number are required" });
+    }
+    
+    // Check if student with same roll already exists
+    const existingStudent = await Student.findOne({ roll });
+    if (existingStudent) {
+      return res.status(400).json({ msg: "Student with this roll number already exists" });
+    }
+    
+    const student = await Student.create(req.body);
+    res.json({ msg: "Student added successfully", student });
   } catch (error) {
+    console.error('Add student error:', error);
     res.status(400).json({ msg: error.message });
   }
 };
 
 export const markAttendance = async (req, res) => {
   try {
-    await Attendance.create(req.body);
-    res.json({ msg: "Attendance saved" });
+    const { date, records } = req.body;
+    
+    if (!date || !records || !Array.isArray(records)) {
+      return res.status(400).json({ msg: "Date and records array are required" });
+    }
+    
+    // Check if attendance for this date already exists
+    const existingAttendance = await Attendance.findOne({ date });
+    if (existingAttendance) {
+      // Update existing attendance
+      existingAttendance.records = records;
+      await existingAttendance.save();
+      res.json({ msg: "Attendance updated successfully" });
+    } else {
+      // Create new attendance record
+      await Attendance.create({ date, records });
+      res.json({ msg: "Attendance saved successfully" });
+    }
   } catch (error) {
+    console.error('Mark attendance error:', error);
     res.status(400).json({ msg: error.message });
   }
 };
 
 export const getLeaves = async (req, res) => {
   try {
-    const leaves = await Leave.find();
+    const leaves = await Leave.find().populate('studentId', 'name roll className');
     res.json(leaves);
   } catch (error) {
+    console.error('Get leaves error:', error);
     res.status(500).json({ msg: error.message });
   }
 };
 
 export const updateLeave = async (req, res) => {
   try {
-    await Leave.findByIdAndUpdate(req.params.id, req.body);
-    res.json({ msg: "Leave updated" });
+    const { status } = req.body;
+    
+    if (!status || !['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ msg: "Valid status (approved/rejected/pending) is required" });
+    }
+    
+    const leave = await Leave.findByIdAndUpdate(
+      req.params.id, 
+      { status }, 
+      { new: true }
+    );
+    
+    if (!leave) {
+      return res.status(404).json({ msg: "Leave application not found" });
+    }
+    
+    res.json({ msg: "Leave status updated successfully", leave });
   } catch (error) {
+    console.error('Update leave error:', error);
     res.status(400).json({ msg: error.message });
   }
 };
