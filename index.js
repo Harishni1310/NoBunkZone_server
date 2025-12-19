@@ -14,10 +14,28 @@ const app = express()
 connectDb();
 
 //middlewares
+// Configure allowed origins. Add your deployed frontend URL or set CLIENT_URL in env.
+const allowedOrigins = [
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://nobunkzoneharishni.netlify.app',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:3000'],
-  credentials: true
-}))
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json())
 
 //routes
