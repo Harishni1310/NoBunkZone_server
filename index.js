@@ -19,7 +19,7 @@ app.use(cors({
   origin: [
     'http://localhost:5174',
     'http://localhost:3000',
-    'https://slamportal.netlify.app'   // ✅ removed trailing slash
+    'https://slamportal.netlify.app','*'   // ✅ removed trailing slash
   ],
   credentials: true
 }));
