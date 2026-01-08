@@ -13,11 +13,6 @@ const app = express()
 
 connectDb();
 
-//middlewares
-app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:3000', 'https://nobunkzoneharishni.netlify.app'],
-  credentials: true
-}))
 app.use(express.json())
 
 //routes
