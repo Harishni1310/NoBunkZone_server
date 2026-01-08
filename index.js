@@ -37,4 +37,18 @@ app.listen(PORT ,() => {
     console.log(`app is listening on port ${PORT}`)
 })
 
+const cors = require("cors");
 
+app.use(cors({
+  origin: "https://slamportal.netlify.app", // allow your frontend
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
+app.post("/api/auth/register", (req, res) => {
+  // registration logic
+});
+
+app.post("/api/auth/login", (req, res) => {
+  // login logic
+});
