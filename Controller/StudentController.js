@@ -82,13 +82,55 @@ export const myAttendance = async (req, res) => {
       console.log('Created new student profile for attendance:', student);
     }
     
-    const data = await Attendance.find({
+    // Get attendance records for this student
+    const attendanceData = await Attendance.find({
       "records.studentId": student._id
+    }).sort({ date: -1 }); // Sort by date descending (latest first)
+    
+    // Extract only this student's records from each attendance document
+    const myAttendanceRecords = attendanceData.map(attendance => {
+      const myRecord = attendance.records.find(record => 
+        record.studentId.toString() === student._id.toString()
+      );
+      
+      return {
+        date: attendance.date,
+        status: myRecord?.status || 'not-marked',
+        markedAt: myRecord?.markedAt,
+        _id: attendance._id
+      };
+    }).filter(record => record.status !== 'not-marked');
+    
+    // Calculate attendance statistics
+    const totalDays = myAttendanceRecords.length;
+    const presentDays = myAttendanceRecords.filter(r => r.status === 'present').length;
+    const absentDays = myAttendanceRecords.filter(r => r.status === 'absent').length;
+    const lateDays = myAttendanceRecords.filter(r => r.status === 'late').length;
+    const attendancePercentage = totalDays > 0 ? ((presentDays + lateDays) / totalDays * 100).toFixed(2) : 0;
+    
+    console.log('Attendance data for student:', {
+      totalRecords: myAttendanceRecords.length,
+      attendancePercentage
     });
     
-    console.log('Attendance data for student:', data);
-    res.json(data);
+    res.json({
+      student: {
+        name: student.name,
+        roll: student.roll,
+        className: student.className
+      },
+      attendance: myAttendanceRecords,
+      statistics: {
+        totalDays,
+        presentDays,
+        absentDays,
+        lateDays,
+        attendancePercentage: parseFloat(attendancePercentage)
+      },
+      lastUpdated: new Date()
+    });
   } catch (error) {
+    console.error('Get attendance error:', error);
     res.status(500).json({ msg: error.message });
   }
 };

@@ -33,17 +33,39 @@ export const markAttendance = async (req, res) => {
       return res.status(400).json({ msg: "Date and records array are required" });
     }
     
+    // Validate records format
+    for (const record of records) {
+      if (!record.studentId || !record.status) {
+        return res.status(400).json({ msg: "Each record must have studentId and status" });
+      }
+    }
+    
+    // Add teacher info to records
+    const enrichedRecords = records.map(record => ({
+      ...record,
+      markedBy: req.user.id,
+      markedAt: new Date()
+    }));
+    
     // Check if attendance for this date already exists
     const existingAttendance = await Attendance.findOne({ date });
     if (existingAttendance) {
       // Update existing attendance
-      existingAttendance.records = records;
+      existingAttendance.records = enrichedRecords;
       await existingAttendance.save();
-      res.json({ msg: "Attendance updated successfully" });
+      res.json({ 
+        msg: "Attendance updated successfully", 
+        attendance: existingAttendance,
+        updatedAt: new Date()
+      });
     } else {
       // Create new attendance record
-      await Attendance.create({ date, records });
-      res.json({ msg: "Attendance saved successfully" });
+      const newAttendance = await Attendance.create({ date, records: enrichedRecords });
+      res.json({ 
+        msg: "Attendance saved successfully", 
+        attendance: newAttendance,
+        createdAt: new Date()
+      });
     }
   } catch (error) {
     console.error('Mark attendance error:', error);

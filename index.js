@@ -19,9 +19,12 @@ app.use(cors({
   origin: [
     'http://localhost:5174',
     'http://localhost:3000',
-    'https://slamportal.netlify.app','*'   // ✅ removed trailing slash
-  ],
-  credentials: true
+    'https://nobunkzoneharishni.netlify.app',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 
