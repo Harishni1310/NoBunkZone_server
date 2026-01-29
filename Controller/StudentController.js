@@ -1,53 +1,22 @@
 import Leave from "../Model/LeaveModel.js";
 import Attendance from "../Model/AttendanceModel.js";
-import Student from "../Model/StudentModel.js";
+import User from "../Model/UserModel.js";
 
 export const getProfile = async (req, res) => {
   try {
-    console.log('Looking for student with user:', req.user);
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
     
-    let student = await Student.findOne({ 
-      $or: [
-        { userId: req.user.id },
-        { email: req.user.email }
-      ]
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      roll: user.roll || 'Not Assigned',
+      className: user.className || 'Not Assigned'
     });
-    
-    // If not found by userId/email, try to find by name match
-    if (!student && req.user.name) {
-      student = await Student.findOne({ name: req.user.name });
-    }
-    
-    console.log('Found student:', student);
-    
-    // If still no student found, try to find by name and update with user info
-    if (!student) {
-      // First try to find an existing student with the same name and update it
-      student = await Student.findOneAndUpdate(
-        { name: req.user.name },
-        { 
-          userId: req.user.id,
-          email: req.user.email || student?.email
-        },
-        { new: true }
-      );
-      
-      // If still no match, create a new profile
-      if (!student) {
-        student = await Student.create({
-          userId: req.user.id,
-          name: req.user.name || 'Student',
-          email: req.user.email,
-          roll: 'AUTO-' + Date.now(),
-          className: 'Not Assigned'
-        });
-        console.log('Created new student profile:', student);
-      } else {
-        console.log('Updated existing student profile:', student);
-      }
-    }
-    
-    res.json(student);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -55,69 +24,35 @@ export const getProfile = async (req, res) => {
 
 export const myAttendance = async (req, res) => {
   try {
-    // Find student record by userId or email
-    let student = await Student.findOne({ 
-      $or: [
-        { userId: req.user.id },
-        { email: req.user.email }
-      ]
-    });
-    
-    // If not found by userId/email, try to find by name match
-    if (!student && req.user.name) {
-      student = await Student.findOne({ name: req.user.name });
-    }
-    
-    console.log('Attendance - Found student:', student);
-    
-    // If still no student found, create a basic profile
-    if (!student) {
-      student = await Student.create({
-        userId: req.user.id,
-        name: req.user.name || 'Student',
-        email: req.user.email,
-        roll: 'AUTO-' + Date.now(),
-        className: 'Not Assigned'
-      });
-      console.log('Created new student profile for attendance:', student);
-    }
-    
-    // Get attendance records for this student
+    // Get attendance records for this user
     const attendanceData = await Attendance.find({
-      "records.studentId": student._id
-    }).sort({ date: -1 }); // Sort by date descending (latest first)
+      "records.studentId": req.user.id
+    }).sort({ date: -1 });
     
-    // Extract only this student's records from each attendance document
+    // Extract only this user's records
     const myAttendanceRecords = attendanceData.map(attendance => {
       const myRecord = attendance.records.find(record => 
-        record.studentId.toString() === student._id.toString()
+        record.studentId.toString() === req.user.id
       );
       
       return {
         date: attendance.date,
         status: myRecord?.status || 'not-marked',
-        markedAt: myRecord?.markedAt,
         _id: attendance._id
       };
     }).filter(record => record.status !== 'not-marked');
     
-    // Calculate attendance statistics
+    // Calculate statistics
     const totalDays = myAttendanceRecords.length;
     const presentDays = myAttendanceRecords.filter(r => r.status === 'present').length;
     const absentDays = myAttendanceRecords.filter(r => r.status === 'absent').length;
     const lateDays = myAttendanceRecords.filter(r => r.status === 'late').length;
     const attendancePercentage = totalDays > 0 ? ((presentDays + lateDays) / totalDays * 100).toFixed(2) : 0;
     
-    console.log('Attendance data for student:', {
-      totalRecords: myAttendanceRecords.length,
-      attendancePercentage
-    });
-    
     res.json({
       student: {
-        name: student.name,
-        roll: student.roll,
-        className: student.className
+        name: req.user.name,
+        email: req.user.email
       },
       attendance: myAttendanceRecords,
       statistics: {
@@ -126,8 +61,7 @@ export const myAttendance = async (req, res) => {
         absentDays,
         lateDays,
         attendancePercentage: parseFloat(attendancePercentage)
-      },
-      lastUpdated: new Date()
+      }
     });
   } catch (error) {
     console.error('Get attendance error:', error);
@@ -137,72 +71,35 @@ export const myAttendance = async (req, res) => {
 
 export const applyLeave = async (req, res) => {
   try {
-    // Find student record by userId or email
-    let student = await Student.findOne({ 
-      $or: [
-        { userId: req.user.id },
-        { email: req.user.email }
-      ]
-    });
+    const { from, to, reason, type } = req.body;
     
-    // If not found by userId/email, try to find by name match
-    if (!student && req.user.name) {
-      student = await Student.findOne({ name: req.user.name });
-    }
-    
-    // If still no student found, create a basic profile
-    if (!student) {
-      student = await Student.create({
-        userId: req.user.id,
-        name: req.user.name || 'Student',
-        email: req.user.email,
-        roll: 'AUTO-' + Date.now(),
-        className: 'Not Assigned'
-      });
-      console.log('Created new student profile for leave application:', student);
+    if (!from || !to || !reason || !type) {
+      return res.status(400).json({ msg: "All fields are required" });
     }
     
     await Leave.create({
-      ...req.body,
-      studentId: student._id,
-      appliedOn: new Date().toISOString().slice(0,10)
+      studentId: req.user.id,
+      studentName: req.user.name,
+      studentEmail: req.user.email,
+      from,
+      to,
+      reason,
+      type
     });
-    res.json({ msg: "Leave applied" });
+    
+    res.json({ msg: "Leave application submitted successfully" });
   } catch (error) {
+    console.error('Apply leave error:', error);
     res.status(400).json({ msg: error.message });
   }
 };
 
 export const myLeaves = async (req, res) => {
   try {
-    // Find student record by userId or email
-    let student = await Student.findOne({ 
-      $or: [
-        { userId: req.user.id },
-        { email: req.user.email }
-      ]
-    });
-    
-    // If not found by userId/email, try to find by name match
-    if (!student && req.user.name) {
-      student = await Student.findOne({ name: req.user.name });
-    }
-    
-    // If still no student found, create a basic profile
-    if (!student) {
-      student = await Student.create({
-        userId: req.user.id,
-        name: req.user.name || 'Student',
-        email: req.user.email,
-        roll: 'AUTO-' + Date.now(),
-        className: 'Not Assigned'
-      });
-      console.log('Created new student profile for leaves:', student);
-    }
-    
-    const leaves = await Leave.find({ studentId: student._id });
+    const leaves = await Leave.find({ studentId: req.user.id }).sort({ createdAt: -1 });
     res.json(leaves);
   } catch (error) {
+    console.error('Get leaves error:', error);
     res.status(500).json({ msg: error.message });
   }
 };

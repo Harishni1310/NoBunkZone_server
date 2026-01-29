@@ -1,13 +1,46 @@
 import mongoose from "mongoose";
 
 const LeaveSchema = new mongoose.Schema({
-  studentId: mongoose.Schema.Types.ObjectId,
-  from: String,
-  to: String,
-  reason: String,
-  type: String,
-  status: { type: String, default: "pending" },
-  appliedOn: String
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  studentName: {
+    type: String,
+    required: true
+  },
+  studentEmail: {
+    type: String,
+    required: true
+  },
+  from: {
+    type: String,
+    required: true
+  },
+  to: {
+    type: String,
+    required: true
+  },
+  reason: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    required: true
+  },
+  status: { 
+    type: String, 
+    default: "pending",
+    enum: ['pending', 'approved', 'rejected']
+  },
+  appliedOn: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
 });
 
 export default mongoose.model("Leave", LeaveSchema);

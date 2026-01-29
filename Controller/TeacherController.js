@@ -3,22 +3,47 @@ import Attendance from "../Model/AttendanceModel.js";
 import Leave from "../Model/LeaveModel.js";
 import Todo from "../Model/TodoModel.js";
 
+import User from "../Model/UserModel.js";
+import Attendance from "../Model/AttendanceModel.js";
+import Leave from "../Model/LeaveModel.js";
+import Todo from "../Model/TodoModel.js";
+import bcrypt from "bcryptjs";
+
 export const addStudent = async (req, res) => {
   try {
-    const { name, roll, className, email } = req.body;
+    const { name, email, password, roll, className } = req.body;
     
-    if (!name || !roll) {
-      return res.status(400).json({ msg: "Name and roll number are required" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ msg: "Name, email and password are required" });
     }
     
-    // Check if student with same roll already exists
-    const existingStudent = await Student.findOne({ roll });
-    if (existingStudent) {
-      return res.status(400).json({ msg: "Student with this roll number already exists" });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ msg: "User with this email already exists" });
     }
     
-    const student = await Student.create(req.body);
-    res.json({ msg: "Student added successfully", student });
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    const student = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: 'student',
+      roll: roll || 'AUTO-' + Date.now(),
+      className: className || 'Not Assigned'
+    });
+    
+    res.json({ 
+      msg: "Student added successfully", 
+      student: {
+        _id: student._id,
+        name: student.name,
+        email: student.email,
+        roll: student.roll,
+        className: student.className
+      }
+    });
   } catch (error) {
     console.error('Add student error:', error);
     res.status(400).json({ msg: error.message });
@@ -75,7 +100,7 @@ export const markAttendance = async (req, res) => {
 
 export const getLeaves = async (req, res) => {
   try {
-    const leaves = await Leave.find().populate('studentId', 'name roll className');
+    const leaves = await Leave.find().sort({ createdAt: -1 });
     res.json(leaves);
   } catch (error) {
     console.error('Get leaves error:', error);
@@ -110,7 +135,7 @@ export const updateLeave = async (req, res) => {
 
 export const getStudents = async (req, res) => {
   try {
-    const students = await Student.find();
+    const students = await User.find({ role: 'student' }).select('-password');
     res.json(students);
   } catch (error) {
     res.status(500).json({ msg: error.message });
@@ -119,7 +144,7 @@ export const getStudents = async (req, res) => {
 
 export const updateStudent = async (req, res) => {
   try {
-    await Student.findByIdAndUpdate(req.params.id, req.body);
+    await User.findByIdAndUpdate(req.params.id, req.body);
     res.json({ msg: "Student updated" });
   } catch (error) {
     res.status(400).json({ msg: error.message });
@@ -128,7 +153,7 @@ export const updateStudent = async (req, res) => {
 
 export const deleteStudent = async (req, res) => {
   try {
-    await Student.findByIdAndDelete(req.params.id);
+    await User.findByIdAndDelete(req.params.id);
     res.json({ msg: "Student deleted" });
   } catch (error) {
     res.status(400).json({ msg: error.message });

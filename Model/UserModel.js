@@ -22,6 +22,14 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'teacher', 'student'],
     default: 'student'
+  },
+  roll: {
+    type: String,
+    trim: true
+  },
+  className: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
