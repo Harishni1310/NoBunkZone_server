@@ -1,8 +1,3 @@
-import Student from "../Model/StudentModel.js";
-import Attendance from "../Model/AttendanceModel.js";
-import Leave from "../Model/LeaveModel.js";
-import Todo from "../Model/TodoModel.js";
-
 import User from "../Model/UserModel.js";
 import Attendance from "../Model/AttendanceModel.js";
 import Leave from "../Model/LeaveModel.js";
