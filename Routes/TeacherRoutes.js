@@ -23,7 +23,7 @@ const protectTeacher = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== "admin" && decoded.role !== "teacher")
+    if (decoded.role !== "admin" && decoded.role !== "teacher" && decoded.role !== "student")
       return res.status(403).json({ msg: "Access denied" });
 
     req.user = decoded;

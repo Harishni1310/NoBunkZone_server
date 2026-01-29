@@ -19,8 +19,10 @@ connectDb();
 const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:3000', 
-  'https://slamportal.netlify.app',  // ✅ Your actual Netlify URL
-  'https://nobunkzoneharishni.netlify.app',  // Keep backup URL
+  'http://localhost:5173',
+  'https://no-bunk-zone-client-rtzo.vercel.app',
+  'https://slamportal.netlify.app',
+  'https://nobunkzoneharishni.netlify.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
